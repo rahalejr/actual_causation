@@ -3,7 +3,7 @@ export const parameters = {
 
     width: 800,
     height:  600,
-    speed: 3,
+    speed: 5,
     slow: 1,
     freezeA: false, 
     freezeB: false,

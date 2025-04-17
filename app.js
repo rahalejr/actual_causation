@@ -2,7 +2,7 @@ import { EyeTrackingManager, CalibrationManager } from '/scripts/tracking.js';
 import { startCollisionDemo, destroyCollisionDemo } from '/scripts/collisions.js';
 
 let step = 0;
-let sequence = ['intro', 'calibration', 'instructions', 'collisions', 'response']
+let sequence = ['collisions', 'intro', 'calibration', 'instructions', 'collisions', 'response']
 
 let eyeTracker = null;
 
