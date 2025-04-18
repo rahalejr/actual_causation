@@ -14,7 +14,7 @@ export function destroyCollisionDemo() {
 }
 
 // Offline simulation to precompute positions
-function simulateAndRecord(condition, totalTimeMs = 5000, timeStepMs = 16) {
+function simulateAndRecord(condition, totalTimeMs = 5000, timeStepMs = 33) { // 30 fps -> ~33ms
     const [ballAYpos, ballBYpos] = parameters.scene_params[condition].ypos;
     const [angleADegrees, angleBDegrees] = parameters.scene_params[condition].angles;
     const { speed, slow, width, height, freezeA, freezeB } = parameters;
@@ -91,6 +91,8 @@ function simulateAndRecord(condition, totalTimeMs = 5000, timeStepMs = 16) {
                 (labels.includes('leftWallTop') || labels.includes('leftWallBottom'))) {
                 stopped = true;
                 stopTime = currentTime + 1000;
+                Body.setVelocity(ballA, {x:0, y:0});
+                Body.setVelocity(ballB, {x:0, y:0});
             }
         });
     });
@@ -146,18 +148,16 @@ export function startCollisionDemo(condition, callback) {
             callback();
             return;
         }
-
+    
         const sample = precomputedPositions[currentFrame];
-
         Body.setPosition(ballA, sample.ballA);
         Body.setPosition(ballB, sample.ballB);
-
         Render.world(render);
+    
         currentFrame++;
-
-        requestAnimationFrame(animate);
+        setTimeout(animate, 33);  // <- fixed time step, not browser speed
     }
-
+    
     Render.run(render);
     requestAnimationFrame(animate);
 }

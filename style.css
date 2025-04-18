@@ -2,6 +2,11 @@ h1 {
     text-align: center;
 }
 
+button {
+    transition: opacity .5s;
+    opacity: 1;
+}
+
 #window-container {
     height: 100dvh;
     width: 100dvw;
@@ -25,6 +30,13 @@ h1 {
     align-items: center;
 }
 
+.hidden {
+    display: none;
+}
+
+.invisible {
+    opacity: 0;
+}
 
 .instructions {
     display: flex;
@@ -47,6 +59,17 @@ h1 {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+#calibration-instructions {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#calibration-instructions.hidden {
+    display: none !important;
 }
 
 #calibration-point {

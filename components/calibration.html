@@ -1,8 +1,16 @@
 <div id="calibration-container" class="hidden">
-    <h2>Eye Tracker Calibration</h2>
-    <p>Please look at the red dot and click on it. The dot will move to different positions.</p>
-    <div id="calibration-point"></div>
-    <div id="progress-container">
+
+    <div id="calibration-instructions">
+        <h2>Eye Tracker Calibration</h2>
+        <p>Please look at the red dot and click on it. The dot will move to different positions.</p>
+        <p>Press the button below to begin.</p>
+        <button id="start-button" class="invisible">Start</button>
+    </div>
+
+    <div id="calibration-point" class="hidden"></div>
+
+    <div id="progress-container" class="hidden">
         <progress id="calibration-progress" value="0" max="9"></progress>
     </div>
+
 </div>

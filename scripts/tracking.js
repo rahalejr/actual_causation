@@ -1,5 +1,8 @@
 import { experimentConfig } from './config.js';
 
+
+let max_threshold = experimentConfig.eyeTracking.fixationThreshold;
+
 // Eye tracking data management
 export class EyeTrackingManager {
     constructor() {
@@ -14,28 +17,26 @@ export class EyeTrackingManager {
     initialize() {
         return new Promise((resolve, reject) => {
             // Initialize WebGazer
-            webgazer.setGazeListener((data, elapsedTime) => {
-                if (data == null) {
-                    return;
-                }
-                
-                // Update gaze visualization dot
-                if (this.config.showGazeDot) {
-                    const gazeDot = document.getElementById('webgazerGazeDot');
-                    if (gazeDot) {
-                        gazeDot.style.left = data.x + 'px';
-                        gazeDot.style.top = data.y + 'px';
-                    }
-                }
-                
-                // Record data if we're in recording mode
-                if (this.isRecording) {
-                    // Only record if enough time has passed (to control sample rate)
+            webgazer
+                .setGazeListener((data, elapsedTime) => {
+                    if (data == null) return;
+    
                     const minInterval = 1000 / this.config.sampleRate;
-                    if (elapsedTime - this.lastTimestamp >= minInterval) {
-                        this.lastTimestamp = elapsedTime;
-                        
-                        // Record the gaze data with metadata
+                    if (elapsedTime - this.lastTimestamp < minInterval) return;
+    
+                    this.lastTimestamp = elapsedTime;
+    
+                    // Update gaze visualization dot
+                    // if (this.config.showGazeDot) {
+                    //     const gazeDot = document.getElementById('webgazerGazeDot');
+                    //     if (gazeDot) {
+                    //         gazeDot.style.left = data.x + 'px';
+                    //         gazeDot.style.top = data.y + 'px';
+                    //     }
+                    // }
+    
+                    // Record data if we're in recording mode
+                    if (this.isRecording) {
                         this.currentTrialData.push({
                             timestamp: elapsedTime,
                             x: data.x,
@@ -43,20 +44,20 @@ export class EyeTrackingManager {
                             trialInfo: this.currentTrial
                         });
                     }
-                }
-            }).begin();
-            
+                })
+                .begin(); // ✅ this was missing in the last version
+    
             // Set WebGazer parameters
-            webgazer.params.showVideo = true;
-            webgazer.params.showFaceOverlay = true;
-            webgazer.params.showFaceFeedbackBox = true;
+            webgazer.params.showVideo = false;
+            webgazer.params.showFaceOverlay = false;
+            webgazer.params.showFaceFeedbackBox = false;
             webgazer.params.showGazeDot = false; // implemented in setupGazeDot
-            
+    
             // Wait for WebGazer to initialize
             setTimeout(() => {
                 this.setupGazeDot();
                 resolve();
-            }, 3000);
+            }, 2000);
         });
     }
     
@@ -104,6 +105,7 @@ export class EyeTrackingManager {
     checkFixation(centerX, centerY) {
         // Get the current gaze position
         const prediction = webgazer.getCurrentPrediction();
+        console.log(prediction);
         if (!prediction) return true; // If no prediction, assume it's correct
         
         // Calculate distance from fixation point
@@ -113,7 +115,7 @@ export class EyeTrackingManager {
         );
         
         // Return true if within threshold, false if outside
-        return distance <= this.config.fixationThreshold;
+        return distance <= fix_threshold;
     }
     
     getAllData() {
@@ -131,17 +133,25 @@ export class CalibrationManager {
     constructor() {
         this.config = experimentConfig.calibration;
         this.calibrationPoints = [];
+        this.calibrationData = [];
         this.currentPointIndex = 0;
         this.container = null;
         this.point = null;
         this.pointClickHandler = null;
         this.onComplete = null;
     }
+
+    calcFixationThreshold(error_px) { 
+        return 40 + (max_threshold - 40) * Math.pow(Math.min(1, (error_px + 10) / max_threshold), 0.8);
+    }
+    
     
     setup() {
         this.container = document.getElementById('calibration-container');
         this.point = document.getElementById('calibration-point');
         this.progressBar = document.getElementById('calibration-progress');
+        this.instructions = document.getElementById('calibration-instructions');
+        this.button = document.getElementById('start-button');
         
         if (!this.container || !this.point) {
             console.error('Calibration container or point element not found');
@@ -155,6 +165,10 @@ export class CalibrationManager {
         
         // Generate calibration points
         this.generateCalibrationPoints();
+        this.button.classList.remove('invisible');
+        setTimeout(() => {
+            null
+        }, 3000);
         
         // Set up progress bar
         if (this.progressBar) {
@@ -169,7 +183,7 @@ export class CalibrationManager {
         this.calibrationPoints = [];
         const containerWidth = this.container.offsetWidth;
         const containerHeight = this.container.offsetHeight;
-        const padding = 50; // Padding from edges
+        const padding = 50;
         
         // Create a grid of points
         for (let y = 0; y < 3; y++) {
@@ -188,6 +202,9 @@ export class CalibrationManager {
     }
     
     start(onCompleteCallback) {
+        this.point.classList.remove('hidden');
+        this.progressBar.classList.remove('hidden');
+        this.instructions.classList.add('hidden');
         this.onComplete = onCompleteCallback;
         this.currentPointIndex = 0;
         
@@ -215,11 +232,22 @@ export class CalibrationManager {
         }
     }
     
-    handlePointClick() {
+    async handlePointClick() {
         const point = this.calibrationPoints[this.currentPointIndex];
 
         // calibrate webgazer
         webgazer.recordScreenPosition(point.x, point.y, 'click');
+
+        const prediction = await webgazer.getCurrentPrediction();
+        console.log(prediction);
+        if (prediction) {
+            this.calibrationData.push({
+                targetX: point.x,
+                targetY: point.y,
+                gazeX: prediction.x,
+                gazeY: prediction.y
+            });
+        }
 
         this.currentPointIndex++;
         
@@ -229,9 +257,26 @@ export class CalibrationManager {
             this.showCurrentPoint();
         }
     }
+
+    calibrationScore() {
+        const last3 = this.calibrationData.slice(-3);
+        const errors = last3.map(({ targetX, targetY, gazeX, gazeY }) => {
+            const dx = targetX - gazeX;
+            const dy = targetY - gazeY;
+            return Math.sqrt(dx * dx + dy * dy);
+        });
+        const error_px = errors.reduce((a, b) => a + b, 0) / errors.length;
+        const calibration_score = Math.max(0, Math.min(1, 1 - (error_px / max_threshold)));
+        const rounded_score = Math.round(calibration_score * 100);
+        const fixation_threshold = this.calcFixationThreshold(error_px);
+
+        return [rounded_score, fixation_threshold];
+    }
     
     finish() {
         this.point.removeEventListener('click', this.pointClickHandler);
-        this.onComplete();
+        const score = webgazer.getCalibrationScore?.();
+
+        this.onComplete(this.calibrationScore());
     }
 }

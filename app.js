@@ -33,7 +33,8 @@ async function render(componentName) {
 async function stepInit(current) {
 
   if(['intro', 'instructions'].includes(current)) {
-    document.getElementById('start-button').addEventListener('click', () => {
+    const startbutton = document.getElementById('start-button')
+    startbutton.addEventListener('click', () => {
       nextStep();
       showStep();
     });
@@ -47,9 +48,13 @@ async function stepInit(current) {
     let calibration = new CalibrationManager();
 
     calibration.setup()
-    calibration.start(() => {
-        nextStep();
-        showStep();
+    document.getElementById('start-button').addEventListener('click', () => {
+        calibration.start((score, threshold) => {
+            console.log('calibration: ' + score);
+            console.log('threshold: ' + threshold);
+            nextStep();
+            showStep();
+        });
     });
   }
 
