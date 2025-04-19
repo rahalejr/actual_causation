@@ -45,7 +45,7 @@ export const experimentConfig = {
     
     // Eye tracking settings
     eyeTracking: {
-        sampleRate: 30,       // Target samples per second
+        sampleRate: 3,       // Target samples per second
         showGazeDot: false,    // Whether to show where the user is looking
         gazeDotRadius: 5,
         gazeDotColor: "rgba(255, 0, 0, 0.5)",

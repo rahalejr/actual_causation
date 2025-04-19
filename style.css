@@ -30,6 +30,18 @@ button {
     align-items: center;
 }
 
+#fixation {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 40px;
+    transform: translate(50%, -50%);
+    font-family: monospace, 'Courier New', Courier;
+    pointer-events: none;
+}
+
+
+
 .hidden {
     display: none;
 }
@@ -82,8 +94,9 @@ button {
 }
 
 #progress-container {
-    margin-top: 10px;
-    width: 500px;
+    position: absolute;
+    bottom: 10px;
+    width: 300px;
 }
 
 progress {

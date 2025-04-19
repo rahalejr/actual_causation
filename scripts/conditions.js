@@ -5,7 +5,7 @@ export const parameters = {
     height:  600,
     speed: 5,
     slow: 1,
-    freezeA: false, 
+    freezeA: true, 
     freezeB: false,
 
     // Timing

@@ -2,11 +2,13 @@ import { experimentConfig } from './config.js';
 
 
 let max_threshold = experimentConfig.eyeTracking.fixationThreshold;
+let fixation_threshold = max_threshold;
 
 // Eye tracking data management
 export class EyeTrackingManager {
     constructor() {
         this.config = experimentConfig.eyeTracking;
+        this.fixationCross = document.getElementById('fixation');
         this.isRecording = false;
         this.currentTrialData = [];
         this.allData = [];
@@ -16,50 +18,44 @@ export class EyeTrackingManager {
     
     initialize() {
         return new Promise((resolve, reject) => {
-            // Initialize WebGazer
-            webgazer
-                .setGazeListener((data, elapsedTime) => {
-                    if (data == null) return;
+            webgazer.setGazeListener((data, elapsedTime) => {
+                if (data == null) return;
     
-                    const minInterval = 1000 / this.config.sampleRate;
-                    if (elapsedTime - this.lastTimestamp < minInterval) return;
+                const minInterval = 1000 / this.config.sampleRate;
+                if (elapsedTime - this.lastTimestamp < minInterval) return;
     
-                    this.lastTimestamp = elapsedTime;
+                this.lastTimestamp = elapsedTime;
     
-                    // Update gaze visualization dot
-                    // if (this.config.showGazeDot) {
-                    //     const gazeDot = document.getElementById('webgazerGazeDot');
-                    //     if (gazeDot) {
-                    //         gazeDot.style.left = data.x + 'px';
-                    //         gazeDot.style.top = data.y + 'px';
-                    //     }
-                    // }
+                if (this.isRecording) {
+                    this.currentTrialData.push({
+                        timestamp: elapsedTime,
+                        x: data.x,
+                        y: data.y,
+                        trialInfo: this.currentTrial
+                    });
+                }
+            });
     
-                    // Record data if we're in recording mode
-                    if (this.isRecording) {
-                        this.currentTrialData.push({
-                            timestamp: elapsedTime,
-                            x: data.x,
-                            y: data.y,
-                            trialInfo: this.currentTrial
-                        });
-                    }
-                })
-                .begin(); // ✅ this was missing in the last version
+            // 🔥 Prevent localStorage spam — improves performance
+            window.localStorage.clear();
+            webgazer.saveDataAcrossSessions = false;
+    
+            webgazer.begin();
     
             // Set WebGazer parameters
             webgazer.params.showVideo = false;
             webgazer.params.showFaceOverlay = false;
             webgazer.params.showFaceFeedbackBox = false;
-            webgazer.params.showGazeDot = false; // implemented in setupGazeDot
+            webgazer.params.showGazeDot = false;
     
-            // Wait for WebGazer to initialize
+            // Wait for WebGazer to fully initialize
             setTimeout(() => {
                 this.setupGazeDot();
                 resolve();
             }, 2000);
         });
     }
+    
     
     setupGazeDot() {
         if (!this.config.showGazeDot) return;
@@ -102,11 +98,16 @@ export class EyeTrackingManager {
         return this.currentTrialData;
     }
     
-    checkFixation(centerX, centerY) {
+    checkFixation() {
         // Get the current gaze position
         const prediction = webgazer.getCurrentPrediction();
         console.log(prediction);
         if (!prediction) return true; // If no prediction, assume it's correct
+
+        const rect = fixationEl.getBoundingClientRect();
+        
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
         
         // Calculate distance from fixation point
         const distance = Math.sqrt(
@@ -115,7 +116,7 @@ export class EyeTrackingManager {
         );
         
         // Return true if within threshold, false if outside
-        return distance <= fix_threshold;
+        return distance <= fixation_threshold;
     }
     
     getAllData() {
@@ -268,7 +269,7 @@ export class CalibrationManager {
         const error_px = errors.reduce((a, b) => a + b, 0) / errors.length;
         const calibration_score = Math.max(0, Math.min(1, 1 - (error_px / max_threshold)));
         const rounded_score = Math.round(calibration_score * 100);
-        const fixation_threshold = this.calcFixationThreshold(error_px);
+        fixation_threshold = this.calcFixationThreshold(error_px);
 
         return [rounded_score, fixation_threshold];
     }

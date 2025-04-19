@@ -1,1 +1,12 @@
-<h2>response</h2>
+<div id="question-container">
+    <h3 id="question-text">How much do you agree with the following statement: Ball A caused Ball B to go through the gate?</h3>
+    <div class="slider-container">
+        <input type="range" min="0" max="100" value="50" class="slider" id="causal-slider">
+        <div class="slider-labels">
+            <span>Not at all (0)</span>
+            <span>Very much (100)</span>
+        </div>
+        <p>Your rating: <span id="slider-value">50</span></p>
+    </div>
+    <button id="submit-button">Submit</button>
+</div>
