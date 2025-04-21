@@ -1,4 +1,10 @@
 export const experimentConfig = {
+
+    styles: {
+        width: 1000,
+        height: 750
+    },
+
     // Experiment conditions
     conditions: {
         freeViewing: {
@@ -16,7 +22,7 @@ export const experimentConfig = {
     // Calibration settings
     calibration: {
         points: 9,        // Number of calibration points
-        repetitions: 1,   // How many times to repeat calibration
+        repetitions: 2,   // How many times to repeat calibration
         pointSize: 20,    // Size of calibration point in pixels
         pointColor: "red",
         randomizeOrder: true
@@ -45,11 +51,11 @@ export const experimentConfig = {
     
     // Eye tracking settings
     eyeTracking: {
-        sampleRate: 3,       // Target samples per second
+        sampleRate: 33,       // Target samples per second
         showGazeDot: false,    // Whether to show where the user is looking
         gazeDotRadius: 5,
         gazeDotColor: "rgba(255, 0, 0, 0.5)",
         recordData: true,     // Whether to record eye tracking data
-        fixationThreshold: 200 // Pixel distance from center allowed in fixation condition
+        fixationThreshold: 350 // Pixel distance from center allowed in fixation condition
     }
 };

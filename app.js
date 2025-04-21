@@ -1,14 +1,16 @@
 import { EyeTrackingManager, CalibrationManager } from '/scripts/tracking.js';
 import { startCollisionDemo, destroyCollisionDemo } from '/scripts/collisions.js';
+import { playClip } from './scripts/clips.js';
 
 let step = 0;
-let sequence = ['collisions', 'intro', 'calibration', 'instructions', 'collisions', 'response']
+let sequence = ['calibration', 'instructions', 'clips', 'response']
 
 let eyeTracker = null;
 
 const sections = {
   intro: () => render('intro'),
   calibration: () => render('calibration'),
+  clips: () => render('clips'),
   collisions: () => render('collisions'),
   instructions: () => render('instructions'),
   response: () => render('response'),
@@ -40,32 +42,57 @@ async function stepInit(current) {
     });
   }
 
-  if(current == 'calibration') {
-    if(!eyeTracker) {
-        eyeTracker = new EyeTrackingManager();
-        await eyeTracker.initialize();
+  if (current == 'calibration') {
+    if (!eyeTracker) {
+      eyeTracker = new EyeTrackingManager();
+      await eyeTracker.initialize();
     }
+  
     let calibration = new CalibrationManager();
-
-    calibration.setup()
-    document.getElementById('start-button').addEventListener('click', () => {
-        calibration.start((score, threshold) => {
-            console.log('calibration: ' + score);
-            console.log('threshold: ' + threshold);
-            nextStep();
-            showStep();
+    calibration.setup();
+  
+    document.getElementById('start-button').addEventListener('click', async () => {
+      for (let i = 0; i < 1; i++) {
+        await new Promise(resolve => {
+          calibration.start(([score, threshold]) => {
+            console.log(`calibration #${i + 1}: ${score}`);
+            console.log(`threshold: ${threshold}`);
+            resolve();
+          });
         });
+      }
+  
+      nextStep();
+      showStep();
     });
   }
 
-  if(current == 'collisions') {
+  if (current == 'clips') {
+    const video = document.getElementById('clips');
+    const logGaze = async () => {
+      const prediction = await webgazer.getCurrentPrediction();
+      if (prediction) {
+        const timestamp = video.currentTime;
+        console.log(`Gaze: ${timestamp.toFixed(3)}s:`, prediction);
+      }
+    };
+  
+    video.addEventListener('timeupdate', logGaze);
+  
+    playClip(10, () => {
+      video.removeEventListener('timeupdate', logGaze);
+      nextStep();
+      showStep();
+    });
+  }
+  
 
+  if(current == 'collisions') {
     startCollisionDemo(15, () => {
         destroyCollisionDemo();
         nextStep();
         showStep();
     });
-
   }
 
 }

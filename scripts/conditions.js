@@ -1,8 +1,8 @@
 // Collision stimuli settings
 export const parameters = {
 
-    width: 800,
-    height:  600,
+    width: 1000,
+    height:  750,
     speed: 5,
     slow: 1,
     freezeA: true, 

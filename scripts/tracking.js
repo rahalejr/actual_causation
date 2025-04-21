@@ -36,7 +36,6 @@ export class EyeTrackingManager {
                 }
             });
     
-            // 🔥 Prevent localStorage spam — improves performance
             window.localStorage.clear();
             webgazer.saveDataAcrossSessions = false;
     
@@ -46,13 +45,13 @@ export class EyeTrackingManager {
             webgazer.params.showVideo = false;
             webgazer.params.showFaceOverlay = false;
             webgazer.params.showFaceFeedbackBox = false;
-            webgazer.params.showGazeDot = false;
+            webgazer.params.showGazeDot = true;
     
             // Wait for WebGazer to fully initialize
             setTimeout(() => {
                 this.setupGazeDot();
                 resolve();
-            }, 2000);
+            }, 4000);
         });
     }
     
@@ -104,7 +103,7 @@ export class EyeTrackingManager {
         console.log(prediction);
         if (!prediction) return true; // If no prediction, assume it's correct
 
-        const rect = fixationEl.getBoundingClientRect();
+        const rect = fixationCross.getBoundingClientRect();
         
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -138,7 +137,6 @@ export class CalibrationManager {
         this.currentPointIndex = 0;
         this.container = null;
         this.point = null;
-        this.pointClickHandler = null;
         this.onComplete = null;
     }
 
@@ -167,9 +165,6 @@ export class CalibrationManager {
         // Generate calibration points
         this.generateCalibrationPoints();
         this.button.classList.remove('invisible');
-        setTimeout(() => {
-            null
-        }, 3000);
         
         // Set up progress bar
         if (this.progressBar) {
@@ -210,8 +205,10 @@ export class CalibrationManager {
         this.currentPointIndex = 0;
         
         // Set up click handler
-        this.pointClickHandler = () => this.handlePointClick();
-        this.point.addEventListener('click', this.pointClickHandler);
+        this.point.onclick = () => {
+            this.recordCalibrationPoint();
+            this.handlePointClick();
+        };
         
         // Show first point
         this.showCurrentPoint();
@@ -232,27 +229,36 @@ export class CalibrationManager {
             this.progressBar.value = this.currentPointIndex;
         }
     }
+
+    async recordCalibrationPoint() {
+        const rect = this.point.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
     
-    async handlePointClick() {
-        const point = this.calibrationPoints[this.currentPointIndex];
-
-        // calibrate webgazer
-        webgazer.recordScreenPosition(point.x, point.y, 'click');
-
+        // collect 5 samples spaced 100ms apart
+        for (let i = 0; i < 5; i++) {
+            webgazer.recordScreenPosition(centerX, centerY, 'click');
+            await new Promise(res => setTimeout(res, 100));
+        }
+    
+        // record last gazepoint
         const prediction = await webgazer.getCurrentPrediction();
-        console.log(prediction);
         if (prediction) {
             this.calibrationData.push({
-                targetX: point.x,
-                targetY: point.y,
+                targetX: centerX,
+                targetY: centerY,
                 gazeX: prediction.x,
                 gazeY: prediction.y
             });
         }
+    }
+    
+    async handlePointClick() {
+        await this.recordCalibrationPoint();
 
         this.currentPointIndex++;
-        
         if (this.currentPointIndex >= this.calibrationPoints.length) {
+            webgazer.train();  // retrain with all collected data
             this.finish();
         } else {
             this.showCurrentPoint();
@@ -267,6 +273,7 @@ export class CalibrationManager {
             return Math.sqrt(dx * dx + dy * dy);
         });
         const error_px = errors.reduce((a, b) => a + b, 0) / errors.length;
+        console.log('error_px ' + error_px);
         const calibration_score = Math.max(0, Math.min(1, 1 - (error_px / max_threshold)));
         const rounded_score = Math.round(calibration_score * 100);
         fixation_threshold = this.calcFixationThreshold(error_px);
@@ -275,8 +282,7 @@ export class CalibrationManager {
     }
     
     finish() {
-        this.point.removeEventListener('click', this.pointClickHandler);
-        const score = webgazer.getCalibrationScore?.();
+        this.point.removeEventListener('click', this.handlePointClick);
 
         this.onComplete(this.calibrationScore());
     }
