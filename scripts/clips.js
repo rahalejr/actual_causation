@@ -4,8 +4,6 @@ export function playClip(condition, callback) {
     var video = document.getElementById('clips');
     var source = document.getElementById('clip-cond');
 
-    condition = 15
-
     source.src = '/clips/clip_' + condition + '.mov';
 
     console.log("VIDEO:", video, "SOURCE:", source);

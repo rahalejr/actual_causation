@@ -51,11 +51,12 @@ export const experimentConfig = {
     
     // Eye tracking settings
     eyeTracking: {
-        sampleRate: 33,       // Target samples per second
+        sampleRate: 60,       // Target samples per second
         showGazeDot: false,    // Whether to show where the user is looking
         gazeDotRadius: 5,
         gazeDotColor: "rgba(255, 0, 0, 0.5)",
         recordData: true,     // Whether to record eye tracking data
-        fixationThreshold: 350 // Pixel distance from center allowed in fixation condition
+        fixationThreshold: 150, // Pixel distance from center allowed in fixation condition
+        fixationBreakSamplesRequired: 5
     }
 };
