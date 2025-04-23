@@ -57,6 +57,11 @@ export const experimentConfig = {
         gazeDotColor: "rgba(255, 0, 0, 0.5)",
         recordData: true,     // Whether to record eye tracking data
         fixationThreshold: 150, // Pixel distance from center allowed in fixation condition
-        fixationBreakSamplesRequired: 10
+        fixationBreakSamplesRequired: 5
+    },
+
+    jitter: {
+        min: 2,
+        max: 6
     }
 };

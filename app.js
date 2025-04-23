@@ -1,13 +1,17 @@
 import { EyeTrackingManager, CalibrationManager } from '/scripts/tracking.js';
+import { trialData, downloadData, getRandomJitter } from './components.js';
 import { startCollisionDemo, destroyCollisionDemo } from '/scripts/collisions.js';
+import { experimentConfig } from './scripts/config.js';
 import { playClip } from './scripts/clips.js';
 
-let sequence = ['debugging', 'calibration', 'instructions', 'clips', 'response']
+let sequence = ['debugging', 'calibration', 'instructions', 'clips', 'response', 'end']
 let stack_sequence = sequence.reverse();
 let current_step = null;
 
+let participant = 'test';
 let condition = '';
 let fixation = false;
+let trials = [];
 
 let eyeTracker = null;
 let calibration_score = 0;
@@ -22,6 +26,7 @@ const sections = {
     collisions: () => render('collisions'),
     instructions: () => render('instructions'),
     response: () => render('response'),
+    end: () => render('end')
 };
 
 async function nextStep() {
@@ -106,17 +111,28 @@ async function stepInit(current) {
         });
     }
 
+    if (current == 'jitter') {
+        const min = experimentConfig.jitter.min, max = experimentConfig.jitter.max;
+        let duration = getRandomJitter(min, max);
+        let jitter_intro = document.getElementById('jitter-intro');
+        setTimeout(() => {
+            jitter_intro.classList.add('invisible');
+            setTimeout(nextStep, duration * 1000);
+        }, 2000);
+    }
+
     if (current == 'clips') {
         let fixation_container = document.getElementById('fixation-container');
+        
         if (eyeTracker && fixation) {
             eyeTracker.updateFixation(fixation);
-            eyeTracker.resume();
-            eyeTracker.startRecording(parseInt(condition));
             fixation_container.classList.remove('invisible');
         }
-    
+
+        eyeTracker.resume();
+        eyeTracker.startRecording(parseInt(condition));
+        
         let fixationBroken = false;
-    
         const fixationListener = () => {
             fixationBroken = true;
             resolvePromise();
@@ -129,6 +145,8 @@ async function stepInit(current) {
             playClip(condition, resolve);
         });
     
+        eyeTracker.stopRecording();
+        eyeTracker.pause();
         window.removeEventListener('fixationBreak', fixationListener);
         fixation_container.classList.add('invisible');
     
@@ -151,7 +169,28 @@ async function stepInit(current) {
         });
     }
 
+    if(current == 'response') {
+        const slider = document.getElementById('causal-slider');
+        const valueDisplay = document.getElementById('slider-value');
+        let values = {judgment: 50};
+    
+        slider.addEventListener('input', () => {
+            valueDisplay.textContent = slider.value;
+            values.judgment = slider.value;
+        });
+        
+        advance(() => {trials.push(trialData(eyeTracker, condition, values))});
+    }
+
+    if(current == 'end') {
+        let results = {
+            'participantID': participant,
+            'trials': trials
+        }
+        downloadData(results, 'causality-experiment-data.json');
+    }
 }
+
 
 // initialize experiment
 window.addEventListener('DOMContentLoaded', nextStep);

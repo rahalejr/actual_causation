@@ -25,7 +25,7 @@ export class EyeTrackingManager {
         this.fixationCross = document.getElementById('fixation');
 
         return new Promise((resolve, reject) => {
-            console.log('inna');
+
             webgazer.setGazeListener((data, elapsedTime) => {
                 if (data == null) return;
 
@@ -57,7 +57,7 @@ export class EyeTrackingManager {
                         }
                     }
                 }
-    
+                console.log(this.isRecording);
                 const minInterval = 1000 / this.config.sampleRate;
                 if (elapsedTime - this.lastTimestamp < minInterval) return;
     
@@ -76,6 +76,7 @@ export class EyeTrackingManager {
                         fixed_gaze: this.fixation,
                         videoTime: videoTime
                     });
+                    console.log(this.currentTrialData);
                 }
             });
     

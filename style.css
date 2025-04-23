@@ -39,7 +39,7 @@ input {
     align-items: center;
 }
 
-#fixation-container {
+#fixation-container #jitter-fixation-container {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -52,7 +52,7 @@ input {
     pointer-events: none;
 }
 
-#fixation {
+#fixation #jitter-fixation {
     font-size: 40px;
     font-family: monospace, 'Courier New', Courier;
 }
@@ -101,6 +101,12 @@ input {
 
 .slider {
     width: 400px;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
 }
 
 
