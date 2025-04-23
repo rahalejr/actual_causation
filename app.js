@@ -128,7 +128,7 @@ async function stepInit(current) {
 
     if (current == 'jitter') {
         eyeTracker.resume();
-        eyeTracker.startRecording(parseInt(condition));
+        eyeTracker.startRecording(condition);
         const min = experimentConfig.jitter.min, max = experimentConfig.jitter.max;
         let duration = getRandomJitter(min, max);
         let jitter_intro = document.getElementById('jitter-intro');
