@@ -4,23 +4,26 @@ import { startCollisionDemo, destroyCollisionDemo } from '/scripts/collisions.js
 import { experimentConfig } from './scripts/config.js';
 import { playClip } from './scripts/clips.js';
 
-let sequence = ['debugging', 'calibration', 'instructions', 'clips', 'response', 'end']
-let stack_sequence = sequence.reverse();
-let current_step = null;
-
 let participant = 'test';
 let condition = '';
+let conditions = null;
 let fixation = false;
+let randomize = true;
 let trials = [];
 
 let eyeTracker = null;
 let calibration_score = 0;
 let fixation_threshold = 0;
 
+let sequence = ['debugging', 'calibration', 'instructions', 'conditions_placeholder', 'response', 'end']
+let stack_sequence = sequence.reverse();
+let current_step = null;
+
 const sections = {
     debugging: () => render('debugging'),
     calibration: () => render('calibration'),
     recalibrate: () => render('recalibrate'),
+    jitter: () => render('jitter'),
     clips: () => render('clips'),
     error: () => render('error'),
     collisions: () => render('collisions'),
@@ -31,6 +34,7 @@ const sections = {
 
 async function nextStep() {
     current_step = stack_sequence.pop()
+    console.log(current_step);
     await sections[current_step]();
     await new Promise(r => setTimeout(r, 0));
     stepInit(current_step);
@@ -64,8 +68,19 @@ async function stepInit(current) {
     if(current == 'debugging') {
         advance(() => {
             fixation = document.querySelector('input[name="fixation"]:checked')?.value == 'true';
-            condition = document.querySelector('input[name="scene"]:checked')?.value;
-            console.log(fixation, condition);
+            conditions = Array.from(document.querySelectorAll('input[name="scene[]"]:checked')).map(cb => cb.value);
+            
+            if (randomize) {
+                for (let i = conditions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [conditions[i], conditions[j]] = [conditions[j], conditions[i]];
+                }
+            }
+
+            console.log('conditions: ' + conditions);
+
+            stack_sequence = sequence.flatMap(step => step == 'conditions_placeholder' ? conditions.flatMap(c => ['response', 'clips', 'jitter']) : [step]);
+            condition = conditions.pop();
         });
     }
 
@@ -112,6 +127,8 @@ async function stepInit(current) {
     }
 
     if (current == 'jitter') {
+        eyeTracker.resume();
+        eyeTracker.startRecording(parseInt(condition));
         const min = experimentConfig.jitter.min, max = experimentConfig.jitter.max;
         let duration = getRandomJitter(min, max);
         let jitter_intro = document.getElementById('jitter-intro');
@@ -122,15 +139,13 @@ async function stepInit(current) {
     }
 
     if (current == 'clips') {
+
         let fixation_container = document.getElementById('fixation-container');
         
         if (eyeTracker && fixation) {
             eyeTracker.updateFixation(fixation);
             fixation_container.classList.remove('invisible');
         }
-
-        eyeTracker.resume();
-        eyeTracker.startRecording(parseInt(condition));
         
         let fixationBroken = false;
         const fixationListener = () => {
@@ -157,8 +172,10 @@ async function stepInit(current) {
             nextStep();
             return;
         }
-    
-        nextStep();
+        
+        nextStep(() => {
+            condition = conditions.pop();
+        });
     }
     
 

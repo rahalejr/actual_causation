@@ -33,7 +33,6 @@ export class EyeTrackingManager {
 
                 if (this.fixation) {
                     let fixated = this.checkFixation();
-                    console.log(fixated);
                     if (!fixated) {
                         this.offFixationCount++;
                     } else {
@@ -67,7 +66,6 @@ export class EyeTrackingManager {
                     // lookup the video element and get currentTime
                     let video = document.getElementById('clips');
                     let videoTime = video ? video.currentTime : null;
-            
                     this.currentTrialData.push({
                         timestamp: elapsedTime,
                         x: data.x,
@@ -76,7 +74,7 @@ export class EyeTrackingManager {
                         fixed_gaze: this.fixation,
                         videoTime: videoTime
                     });
-                    console.log(this.currentTrialData);
+                    // console.log(this.currentTrialData);
                 }
             });
     
@@ -122,8 +120,17 @@ export class EyeTrackingManager {
         }
     }
 
-    pause() {webgazer.pause()};
-    resume() {webgazer.resume()};
+    pause() {
+        webgazer.pause()
+        let gazeDot = document.getElementById('webgazerGazeDot');
+        gazeDot.classList.add('invisible');
+    };
+
+    resume() {
+        webgazer.resume();
+        let gazeDot = document.getElementById('webgazerGazeDot');
+        gazeDot.classList.remove('invisible');
+    };
     
     startRecording(condition) {
         this.currentTrial = condition;
