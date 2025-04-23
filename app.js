@@ -173,9 +173,7 @@ async function stepInit(current) {
             return;
         }
         
-        nextStep(() => {
-            condition = conditions.pop();
-        });
+        condition = conditions.pop();
     }
     
 
