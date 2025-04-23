@@ -6,7 +6,7 @@ let sequence = ['debugging', 'calibration', 'instructions', 'clips', 'response']
 let stack_sequence = sequence.reverse();
 let current_step = null;
 
-let condition = 0;
+let condition = '';
 let fixation = false;
 
 let eyeTracker = null;
@@ -15,7 +15,6 @@ let fixation_threshold = 0;
 
 const sections = {
     debugging: () => render('debugging'),
-    intro: () => render('intro'),
     calibration: () => render('calibration'),
     recalibrate: () => render('recalibrate'),
     clips: () => render('clips'),
@@ -60,13 +59,13 @@ async function stepInit(current) {
     if(current == 'debugging') {
         advance(() => {
             fixation = document.querySelector('input[name="fixation"]:checked')?.value == 'true';
-            condition = parseInt(document.querySelector('input[name="scene"]:checked')?.value);
+            condition = document.querySelector('input[name="scene"]:checked')?.value;
             console.log(fixation, condition);
         });
     }
 
 
-    if(['intro', 'instructions', 'error'].includes(current)) {
+    if(['instructions', 'error'].includes(current)) {
         advance()
     }
 
@@ -108,8 +107,12 @@ async function stepInit(current) {
     }
 
     if (current == 'clips') {
-        if (eyeTracker) {
+        let fixation_container = document.getElementById('fixation-container');
+        if (eyeTracker && fixation) {
             eyeTracker.updateFixation(fixation);
+            eyeTracker.resume();
+            eyeTracker.startRecording(parseInt(condition));
+            fixation_container.classList.remove('invisible');
         }
     
         let fixationBroken = false;
@@ -127,6 +130,7 @@ async function stepInit(current) {
         });
     
         window.removeEventListener('fixationBreak', fixationListener);
+        fixation_container.classList.add('invisible');
     
         if (fixationBroken) {
             console.warn('Fixation broken — ending clip');

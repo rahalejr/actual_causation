@@ -4,7 +4,10 @@ export function playClip(condition, callback) {
     var video = document.getElementById('clips');
     var source = document.getElementById('clip-cond');
 
-    source.src = '/clips/clip_' + condition + '.mov';
+    console.log(condition);
+    console.log(['and', 'or'].includes(condition));
+
+    source.src = ['and', 'or'].includes(condition) ? '/clips/clip_' + condition + '.mp4' : '/clips/clip_' + condition + '.mov'
 
     console.log("VIDEO:", video, "SOURCE:", source);
 

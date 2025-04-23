@@ -1,8 +1,8 @@
 export const experimentConfig = {
 
     styles: {
-        width: 1000,
-        height: 750
+        width: 800,
+        height: 600
     },
 
     // Experiment conditions
@@ -57,6 +57,6 @@ export const experimentConfig = {
         gazeDotColor: "rgba(255, 0, 0, 0.5)",
         recordData: true,     // Whether to record eye tracking data
         fixationThreshold: 150, // Pixel distance from center allowed in fixation condition
-        fixationBreakSamplesRequired: 5
+        fixationBreakSamplesRequired: 10
     }
 };

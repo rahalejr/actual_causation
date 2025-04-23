@@ -1,0 +1,1 @@
+// move all component specific logic in app.js here

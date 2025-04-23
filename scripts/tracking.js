@@ -10,6 +10,7 @@ export class EyeTrackingManager {
         this.config = experimentConfig.eyeTracking;
         this.fixation = false;
         this.fixationCross = null;
+        this.fixationBroken = false;
         this.isRecording = false;
         this.currentTrialData = [];
         this.allData = [];
@@ -24,6 +25,7 @@ export class EyeTrackingManager {
         this.fixationCross = document.getElementById('fixation');
 
         return new Promise((resolve, reject) => {
+            console.log('inna');
             webgazer.setGazeListener((data, elapsedTime) => {
                 if (data == null) return;
 
@@ -31,15 +33,18 @@ export class EyeTrackingManager {
 
                 if (this.fixation) {
                     let fixated = this.checkFixation();
-            
+                    console.log(fixated);
                     if (!fixated) {
                         this.offFixationCount++;
                     } else {
                         this.offFixationCount = 0;
                     }
+
+                    console.log(this.fixationBreakSamplesRequired, this.offFixationCount);
             
                     if (this.offFixationCount >= this.fixationBreakSamplesRequired) {
                         if (!this.fixationBroken) {
+                            this.fixationBroken = true;
                             this.currentTrialData = []
                             console.warn("Fixation broken at", elapsedTime);
                             const event = new CustomEvent('fixationBreak', {
@@ -115,9 +120,12 @@ export class EyeTrackingManager {
             document.body.appendChild(gazeDot);
         }
     }
+
+    pause() {webgazer.pause()};
+    resume() {webgazer.resume()};
     
-    startRecording(trialInfo) {
-        this.currentTrial = trialInfo;
+    startRecording(condition) {
+        this.currentTrial = condition;
         this.currentTrialData = [];
         this.isRecording = true;
         this.lastTimestamp = performance.now();
@@ -139,22 +147,17 @@ export class EyeTrackingManager {
         this.fixation = bool;
     }
     
-    async checkFixation() {
-
-        if (!this.latestPrediction) return true; // If no prediction, assume it's correct
+    checkFixation() {
 
         const rect = this.fixationCross.getBoundingClientRect();
         
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-        
         // Calculate distance from fixation point
         const distance = Math.sqrt(
             Math.pow(this.latestPrediction.x - centerX, 2) + 
-            Math.pow(this.latestPprediction.y - centerY, 2)
+            Math.pow(this.latestPrediction.y - centerY, 2)
         );
-
-        console.log(distance);
         
         // Return true if within threshold, false if outside
         return distance <= fixation_threshold;
@@ -315,7 +318,7 @@ export class CalibrationManager {
             return Math.sqrt(dx * dx + dy * dy);
         });
         const error_px = errors.reduce((a, b) => a + b, 0) / errors.length;
-        console.log('error_px ' + error_px);
+        console.log('error_px: ' + error_px);
         const calibration_score = Math.max(0, Math.min(1, 1 - (error_px / max_threshold)));
         const rounded_score = Math.round(calibration_score * 100);
         fixation_threshold = Math.round(this.calcFixationThreshold(error_px));
