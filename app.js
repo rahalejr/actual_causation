@@ -1,5 +1,5 @@
 import { EyeTrackingManager, CalibrationManager } from '/scripts/tracking.js';
-import { trialData, downloadData, getRandomJitter } from './components.js';
+import * as components from './components.js';
 import { startCollisionDemo, destroyCollisionDemo } from '/scripts/collisions.js';
 import { experimentConfig } from './scripts/config.js';
 import { playClip } from './scripts/clips.js';
@@ -19,35 +19,16 @@ let sequence = ['debugging', 'calibration', 'instructions', 'conditions_placehol
 let stack_sequence = sequence.reverse();
 let current_step = null;
 
-const sections = {
-    debugging: () => render('debugging'),
-    calibration: () => render('calibration'),
-    recalibrate: () => render('recalibrate'),
-    jitter: () => render('jitter'),
-    clips: () => render('clips'),
-    error: () => render('error'),
-    collisions: () => render('collisions'),
-    instructions: () => render('instructions'),
-    response: () => render('response'),
-    end: () => render('end')
-};
-
 async function nextStep() {
     current_step = stack_sequence.pop()
     console.log(current_step);
-    await sections[current_step]();
+    await components.sections[current_step]();
     await new Promise(r => setTimeout(r, 0));
     stepInit(current_step);
 }
 
-async function render(componentName) {
-    const res = await fetch(`components/${componentName}.html`);
-    const html = await res.text();
-    document.getElementById('app-root').innerHTML = html;
-}
-
 async function recalibrate() {
-    await sections['recalibrate']();
+    await components.sections['recalibrate']();
     const startbutton = document.getElementById('start-button')
     startbutton.addEventListener('click', () => {
         stack_sequence.push('calibration');
@@ -130,7 +111,7 @@ async function stepInit(current) {
         eyeTracker.resume();
         eyeTracker.startRecording(condition);
         const min = experimentConfig.jitter.min, max = experimentConfig.jitter.max;
-        let duration = getRandomJitter(min, max);
+        let duration = components.getRandomJitter(min, max);
         let jitter_intro = document.getElementById('jitter-intro');
         setTimeout(() => {
             jitter_intro.classList.add('invisible');
@@ -161,7 +142,6 @@ async function stepInit(current) {
         });
     
         eyeTracker.stopRecording();
-        eyeTracker.pause();
         window.removeEventListener('fixationBreak', fixationListener);
         fixation_container.classList.add('invisible');
     
@@ -174,6 +154,7 @@ async function stepInit(current) {
         }
         
         condition = conditions.pop();
+        nextStep();
     }
     
 
@@ -185,6 +166,7 @@ async function stepInit(current) {
     }
 
     if(current == 'response') {
+        eyeTracker.pause();
         const slider = document.getElementById('causal-slider');
         const valueDisplay = document.getElementById('slider-value');
         let values = {judgment: 50};
@@ -194,7 +176,7 @@ async function stepInit(current) {
             values.judgment = slider.value;
         });
         
-        advance(() => {trials.push(trialData(eyeTracker, condition, values))});
+        advance(() => {trials.push(components.trialData(eyeTracker, condition, values))});
     }
 
     if(current == 'end') {
@@ -202,7 +184,7 @@ async function stepInit(current) {
             'participantID': participant,
             'trials': trials
         }
-        downloadData(results, 'causality-experiment-data.json');
+        components.downloadData(results, 'causality-experiment-data.json');
     }
 }
 
