@@ -8,6 +8,26 @@
 
     <div id="calibration-point" class="hidden"></div>
 
+    <div id="wheel" class="hidden">
+        <svg width="40" height="40">
+          <circle
+            id="circle"
+            class="invisible"
+            cx="20"
+            cy="20"
+            r="18"
+            stroke="red"
+            stroke-width="3"
+            fill="none"
+            stroke-linecap="round"
+          />
+        </svg>
+    
+        <div id="check" class="invisible">
+          <span class="material-symbols-rounded">check</span>
+        </div>
+      </div>
+
     <div id="progress-container">
         <progress id="calibration-progress" value="0" max="9"></progress>
     </div>

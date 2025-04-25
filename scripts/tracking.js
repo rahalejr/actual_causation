@@ -1,4 +1,5 @@
 import { experimentConfig } from './config.js';
+import { TimingWheel } from '../components.js'
 
 
 let max_threshold = experimentConfig.eyeTracking.fixationThreshold;
@@ -56,7 +57,6 @@ export class EyeTrackingManager {
                         }
                     }
                 }
-                console.log(this.isRecording);
                 const minInterval = 1000 / this.config.sampleRate;
                 if (elapsedTime - this.lastTimestamp < minInterval) return;
     
@@ -191,6 +191,11 @@ export class CalibrationManager {
         this.container = null;
         this.point = null;
         this.onComplete = null;
+        this.holdStart = 0;
+        this.pointHeld = false;
+        this.holdTimeout = null;
+        this.holdInterval = null;
+        this.wheel = null;
     }
 
     calcFixationThreshold(error_px) { 
@@ -201,6 +206,9 @@ export class CalibrationManager {
     setup() {
         this.container = document.getElementById('calibration-container');
         this.point = document.getElementById('calibration-point');
+        this.timing_wheel = document.getElementById('wheel');
+        this.circle = document.getElementById('circle');
+        this.checkmark = document.getElementById('check');
         this.progressBar = document.getElementById('calibration-progress');
         this.instructions = document.getElementById('calibration-instructions');
         this.button = document.getElementById('start-button');
@@ -252,15 +260,56 @@ export class CalibrationManager {
     
     start(onCompleteCallback) {
         this.point.classList.remove('hidden');
+        this.timing_wheel.classList.remove('hidden');
+        this.circle.classList.remove('invisible');
         this.progressBar.classList.remove('hidden');
         this.instructions.classList.add('hidden');
         this.onComplete = onCompleteCallback;
         this.currentPointIndex = 0;
+
+        this.wheel = new TimingWheel(this.circle);
+        this.wheel.setProgress(0);
+
+        this.point.addEventListener('mousedown', () => {
+            clearTimeout(this.holdTimeout);
+            clearTimeout(this.holdInterval);
+            this.holdStart = Date.now();
+            this.recordCalibrationPoint();
+
+            this.holdTimeout = setTimeout(() => {
+              this.pointHeld = true;
+              this.checkmark.classList.remove('invisible');
+              this.checkmark.classList.add('bounce');
+              setTimeout(() => {
+                this.pointHeld = false;
+                this.currentPointIndex++;
+                this.checkmark.classList.add('invisible');
+                this.checkmark.classList.add('bounce');
+                this.wheel.setProgress(0);
+                this.showCurrentPoint();
+              }, 1000)
+            }, 3000);
+
+            this.holdInterval = setInterval(() => {
+                if(this.pointHeld) {clearInterval(this.holdInterval)}
+                const elapsed = Date.now() - this.holdStart;
+                const percent_elapsed = Math.min((elapsed / 3000) * 100, 100);
+                console.log(percent_elapsed);
+                this.wheel.setProgress(percent_elapsed);
+              }, 50); 
+        });
+        
+        this.point.addEventListener('mouseup', () => {
+            if(!this.pointHeld) {
+                this.wheel.setProgress(0);
+                clearTimeout(this.holdTimeout);
+                clearInterval(this.holdInterval);
+            }
+        });
         
         // Set up click handler
         this.point.onclick = () => {
             this.recordCalibrationPoint();
-            this.handlePointClick();
         };
         
         // Show first point
@@ -274,8 +323,8 @@ export class CalibrationManager {
         }
         
         const point = this.calibrationPoints[this.currentPointIndex];
-        this.point.style.left = point.x + 'px';
-        this.point.style.top = point.y + 'px';
+        this.point.style.left = point.x + 'px', this.timing_wheel.style.left = point.x + 'px';
+        this.point.style.top = point.y + 'px', this.timing_wheel.style.top = point.y + 'px';
         
         // Update progress
         if (this.progressBar) {
@@ -284,39 +333,31 @@ export class CalibrationManager {
     }
 
     async recordCalibrationPoint() {
-
         const rect = this.point.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
-    
-        // collect 5 samples spaced 100ms apart
-        for (let i = 0; i < 5; i++) {
-            webgazer.recordScreenPosition(centerX, centerY, 'click');
-            await new Promise(res => setTimeout(res, 100));
+      
+        const duration = 3000; // ms
+        const sampleInterval = 100; // ms
+        const startTime = Date.now();
+      
+        while (Date.now() - startTime < duration) {
+          webgazer.recordScreenPosition(centerX, centerY, 'click');
+          await new Promise(res => setTimeout(res, sampleInterval));
         }
-    
-        // record last gazepoint
+      
+        // Get one final prediction after the full wait
         const prediction = await webgazer.getCurrentPrediction();
         if (prediction) {
-            this.calibrationData.push({
-                targetX: centerX,
-                targetY: centerY,
-                gazeX: prediction.x,
-                gazeY: prediction.y
-            });
+          this.calibrationData.push({
+            targetX: centerX,
+            targetY: centerY,
+            gazeX: prediction.x,
+            gazeY: prediction.y
+          });
         }
     }
-    
-    async handlePointClick() {
-        await this.recordCalibrationPoint();
 
-        this.currentPointIndex++;
-        if (this.currentPointIndex >= this.calibrationPoints.length) {
-            this.finish();
-        } else {
-            this.showCurrentPoint();
-        }
-    }
 
     calibrationScore() {
         const last3 = this.calibrationData.slice(-3);
@@ -335,8 +376,6 @@ export class CalibrationManager {
     }
     
     finish() {
-        this.point.removeEventListener('click', this.handlePointClick);
-
         this.onComplete(this.calibrationScore());
     }
 }

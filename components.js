@@ -42,3 +42,20 @@ export function downloadData(data, filename) {
 export function getRandomJitter(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
+
+export class TimingWheel {
+    constructor(circleElement) {
+      this.circle = circleElement;
+  
+      this.radius = 18;
+      this.circumference = 2 * Math.PI * this.radius;
+  
+      this.circle.setAttribute('stroke-dasharray', this.circumference);
+      this.setProgress(0);
+    }
+  
+    setProgress(percent) {
+      const offset = this.circumference - (percent / 100) * this.circumference;
+      this.circle.setAttribute('stroke-dashoffset', offset);
+    }
+  }
